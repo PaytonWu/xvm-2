@@ -4,11 +4,13 @@
 
 #include "xvm/xsystem_contracts/xreward/xzec_vote_contract.h"
 
-#include "xstore/xstore_error.h"
-#include "xbasic/xutility.h"
-#include "xdata/xgenesis_data.h"
 #include "xbase/xutl.h"
+#include "xbasic/xutility.h"
+#include "xchain_upgrade/xchain_reset_center.h"
+#include "xdata/xgenesis_data.h"
 #include "xstake/xstake_algorithm.h"
+#include "xstore/xstore_error.h"
+
 #include <iomanip>
 
 using top::base::xstream_t;
@@ -33,6 +35,11 @@ xzec_vote_contract::xzec_vote_contract(common::xnetwork_id_t const & network_id)
 void xzec_vote_contract::setup() {
     // save shard total tickets
     MAP_CREATE(XPORPERTY_CONTRACT_TICKETS_KEY);
+    std::vector<std::pair<std::string, std::string>> db_kv_105;
+    chain_reset::xchain_reset_center_t::get_reset_stake_map_property(SELF_ADDRESS(), XPORPERTY_CONTRACT_TICKETS_KEY, db_kv_105);
+    for (auto const & _p : db_kv_105) {
+        MAP_SET(XPORPERTY_CONTRACT_TICKETS_KEY, _p.first, _p.second);
+    }
     /*{
         // test
         std::map<std::string, std::string> contract_auditor_votes;

@@ -4,6 +4,7 @@
 
 #include "xvm/xsystem_contracts/xreward/xtable_reward_claiming_contract.h"
 
+#include "xchain_upgrade/xchain_reset_center.h"
 #include "xdata/xdatautil.h"
 #include "xdata/xnative_contract_address.h"
 #include "xmetrics/xmetrics.h"
@@ -17,8 +18,18 @@ void xtop_table_reward_claiming_contract::setup() {
         std::string property{xstake::XPORPERTY_CONTRACT_VOTER_DIVIDEND_REWARD_KEY_BASE};
         property += "-" + std::to_string(i);
         MAP_CREATE(property);
+        std::vector<std::pair<std::string, std::string>> db_kv_121;
+        chain_reset::xchain_reset_center_t::get_reset_stake_map_property(SELF_ADDRESS(), property, db_kv_121);
+        for (auto const & _p : db_kv_121) {
+            MAP_SET(property, _p.first, _p.second);
+        }
     }
     MAP_CREATE(xstake::XPORPERTY_CONTRACT_NODE_REWARD_KEY);
+    std::vector<std::pair<std::string, std::string>> db_kv_124;
+    chain_reset::xchain_reset_center_t::get_reset_stake_map_property(SELF_ADDRESS(), XPORPERTY_CONTRACT_NODE_REWARD_KEY, db_kv_124);
+    for (auto const & _p : db_kv_124) {
+        MAP_SET(XPORPERTY_CONTRACT_NODE_REWARD_KEY, _p.first, _p.second);
+    }
 }
 
 xcontract::xcontract_base * xtop_table_reward_claiming_contract::clone() {

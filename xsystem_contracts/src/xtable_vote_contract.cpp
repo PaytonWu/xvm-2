@@ -3,10 +3,10 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "xvm/xsystem_contracts/xreward/xtable_vote_contract.h"
-#include "xchain_upgrade/xchain_upgrade_center.h"
 
 #include "xbase/xutl.h"
 #include "xbasic/xutility.h"
+#include "xchain_upgrade/xchain_reset_center.h"
 #include "xcommon/xrole_type.h"
 #include "xdata/xgenesis_data.h"
 #include "xmetrics/xmetrics.h"
@@ -29,9 +29,18 @@ void xtable_vote_contract::setup() {
         std::string property;
         property = property + XPORPERTY_CONTRACT_VOTES_KEY_BASE + "-" + std::to_string(i);
         MAP_CREATE(property);
+        std::vector<std::pair<std::string, std::string>> db_kv_112;
+        chain_reset::xchain_reset_center_t::get_reset_stake_map_property(SELF_ADDRESS(), property, db_kv_112);
+        for (auto const & _p : db_kv_112) {
+            MAP_SET(property, _p.first, _p.second);
+        }
     }
-
     MAP_CREATE(XPORPERTY_CONTRACT_POLLABLE_KEY);
+    std::vector<std::pair<std::string, std::string>> db_kv_107;
+    chain_reset::xchain_reset_center_t::get_reset_stake_map_property(SELF_ADDRESS(), XPORPERTY_CONTRACT_POLLABLE_KEY, db_kv_107);
+    for (auto const & _p : db_kv_107) {
+        MAP_SET(XPORPERTY_CONTRACT_POLLABLE_KEY, _p.first, _p.second);
+    }
     STRING_CREATE(XPORPERTY_CONTRACT_TIME_KEY);
 }
 

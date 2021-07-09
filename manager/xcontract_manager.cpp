@@ -5,7 +5,8 @@
 #include "xvm/manager/xcontract_manager.h"
 
 #include "xbase/xmem.h"
-#include "xvledger/xvblock.h"
+#include "xchain_upgrade/xchain_reset_center.h"
+#include "xchain_upgrade/xchain_reset_data.h"
 #include "xcodec/xmsgpack_codec.hpp"
 #include "xcommon/xip.h"
 #include "xconfig/xconfig_register.h"
@@ -17,10 +18,11 @@
 #include "xdata/xgenesis_data.h"
 #include "xmbus/xevent_store.h"
 #include "xmbus/xevent_timer.h"
+#include "xvledger/xvblock.h"
 #include "xvm/manager/xcontract_address_map.h"
 #include "xvm/manager/xmessage_ids.h"
-#include "xvm/xsystem_contracts/tcc/xrec_proposal_contract.h"
 #include "xvm/xsystem_contracts/deploy/xcontract_deploy.h"
+#include "xvm/xsystem_contracts/tcc/xrec_proposal_contract.h"
 #include "xvm/xsystem_contracts/xelection/xrec/xrec_elect_archive_contract.h"
 #include "xvm/xsystem_contracts/xelection/xrec/xrec_elect_edge_contract.h"
 #include "xvm/xsystem_contracts/xelection/xrec/xrec_elect_rec_contract.h"
@@ -34,8 +36,8 @@
 #include "xvm/xsystem_contracts/xreward/xtable_vote_contract.h"
 #include "xvm/xsystem_contracts/xreward/xzec_reward_contract.h"
 #include "xvm/xsystem_contracts/xreward/xzec_vote_contract.h"
-#include "xvm/xsystem_contracts/xworkload/xzec_workload_contract_v2.h"
 #include "xvm/xsystem_contracts/xslash/xzec_slash_info_contract.h"
+#include "xvm/xsystem_contracts/xworkload/xzec_workload_contract_v2.h"
 #include "xvm/xvm_service.h"
 #include "xmetrics/xmetrics.h"
 
@@ -353,6 +355,12 @@ void xtop_contract_manager::setup_chain(common::xaccount_address_t const & contr
 
     xvm::xvm_service s;
     s.deal_transaction(tx, &ac);
+
+    auto const & stake_property = chain_reset::stake_property_json;
+    if (stake_property.count(contract_cluster_address.value())) {
+        auto balance = xstring_utl::touint64(static_cast<std::string>(stake_property.at(contract_cluster_address.value()).at(XPROPERTY_BALANCE_AVAILABLE)));
+        ac.top_token_transfer_in(balance);
+    }
 
     store::xtransaction_result_t result;
     ac.get_transaction_result(result);
