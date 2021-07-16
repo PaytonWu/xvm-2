@@ -14,21 +14,60 @@ NS_BEG4(top, xvm, system_contracts, reward)
 xtop_table_reward_claiming_contract::xtop_table_reward_claiming_contract(common::xnetwork_id_t const & network_id) : xbase_t{network_id} {}
 
 void xtop_table_reward_claiming_contract::setup() {
+    const int old_tables_count = 256;
+    uint32_t table_id = 0;
+    if (!EXTRACT_TABLE_ID(SELF_ADDRESS(), table_id)) {
+        xwarn("[xtop_table_reward_claiming_contract::setup] EXTRACT_TABLE_ID failed, node reward pid: %d, account: %s", getpid(), SELF_ADDRESS().c_str());
+        return;
+    }
+    xdbg("[xtop_table_reward_claiming_contract::setup] table id: %d", table_id);
+    
     for (auto i = 1; i <= xstake::XPROPERTY_SPLITED_NUM; i++) {
         std::string property{xstake::XPORPERTY_CONTRACT_VOTER_DIVIDEND_REWARD_KEY_BASE};
         property += "-" + std::to_string(i);
         MAP_CREATE(property);
-        std::vector<std::pair<std::string, std::string>> db_kv_121;
-        chain_reset::xchain_reset_center_t::get_reset_stake_map_property(SELF_ADDRESS(), property, db_kv_121);
-        for (auto const & _p : db_kv_121) {
-            MAP_SET(property, _p.first, _p.second);
+        {
+            int total_121kv = 0;
+            static int acc_121kv[4] = {0}; 
+            for (auto j = 0; j < old_tables_count; j++) {
+                auto table_addr = std::string{sys_contract_sharding_reward_claiming_addr} + "@" + base::xstring_utl::tostring(j);
+                std::vector<std::pair<std::string, std::string>> db_kv_121;
+                chain_reset::xchain_reset_center_t::get_reset_stake_map_property(common::xaccount_address_t{table_addr}, property, db_kv_121);
+                total_121kv += db_kv_121.size();
+                for (auto const & _p : db_kv_121) {
+                    base::xvaccount_t vaccount{_p.first};
+                    auto account_table_id = vaccount.get_short_table_id();
+                    if (account_table_id != table_id) {
+                        continue;
+                    }
+                    MAP_SET(property, _p.first, _p.second);
+                    acc_121kv[i-1]++;
+                }
+            }
+            xdbg("[xtop_table_reward_claiming_contract::setup] total_121kv[%d]: %d, acc_121kv[%d]: %d", i ,total_121kv, i, acc_121kv[i-1]);
         }
     }
+    
     MAP_CREATE(xstake::XPORPERTY_CONTRACT_NODE_REWARD_KEY);
-    std::vector<std::pair<std::string, std::string>> db_kv_124;
-    chain_reset::xchain_reset_center_t::get_reset_stake_map_property(SELF_ADDRESS(), XPORPERTY_CONTRACT_NODE_REWARD_KEY, db_kv_124);
-    for (auto const & _p : db_kv_124) {
-        MAP_SET(XPORPERTY_CONTRACT_NODE_REWARD_KEY, _p.first, _p.second);
+    {
+        int total_124kv = 0;
+        static int acc_124kv = 0; 
+        for (auto i = 0; i < old_tables_count; i++) {
+            auto table_addr = std::string{sys_contract_sharding_reward_claiming_addr} + "@" + base::xstring_utl::tostring(i);
+            std::vector<std::pair<std::string, std::string>> db_kv_124;
+            chain_reset::xchain_reset_center_t::get_reset_stake_map_property(common::xaccount_address_t{table_addr}, XPORPERTY_CONTRACT_NODE_REWARD_KEY, db_kv_124);
+            total_124kv += db_kv_124.size();
+            for (auto const & _p : db_kv_124) {
+                base::xvaccount_t vaccount{_p.first};
+                auto account_table_id = vaccount.get_short_table_id();
+                if (account_table_id != table_id) {
+                    continue;
+                }
+                MAP_SET(XPORPERTY_CONTRACT_NODE_REWARD_KEY, _p.first, _p.second);
+                acc_124kv++;
+            }
+        }
+        xdbg("[xtop_table_reward_claiming_contract::setup] total_124kv: %d, acc_124kv: %d", total_124kv, acc_124kv);
     }
 }
 
