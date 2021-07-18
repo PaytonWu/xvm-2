@@ -36,8 +36,8 @@ void xtop_table_reward_claiming_contract::setup() {
                 total_121kv += db_kv_121.size();
                 for (auto const & _p : db_kv_121) {
                     base::xvaccount_t vaccount{_p.first};
-                    auto account_table_id = vaccount.get_short_table_id();
-                    if (account_table_id != table_id) {
+                    auto const account_table_id = vaccount.get_ledger_subaddr();
+                    if (static_cast<uint16_t>(account_table_id) != static_cast<uint16_t>(table_id)) {
                         continue;
                     }
                     MAP_SET(property, _p.first, _p.second);
@@ -59,8 +59,8 @@ void xtop_table_reward_claiming_contract::setup() {
             total_124kv += db_kv_124.size();
             for (auto const & _p : db_kv_124) {
                 base::xvaccount_t vaccount{_p.first};
-                auto account_table_id = vaccount.get_short_table_id();
-                if (account_table_id != table_id) {
+                auto account_table_id = vaccount.get_ledger_subaddr();
+                if (static_cast<uint16_t>(account_table_id) != static_cast<uint16_t>(table_id)) {
                     continue;
                 }
                 MAP_SET(XPORPERTY_CONTRACT_NODE_REWARD_KEY, _p.first, _p.second);

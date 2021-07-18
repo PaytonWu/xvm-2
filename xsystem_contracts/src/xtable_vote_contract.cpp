@@ -47,8 +47,8 @@ void xtable_vote_contract::setup() {
                 total_112kv += db_kv_112.size();
                 for (auto const & _p : db_kv_112) {
                     base::xvaccount_t vaccount{_p.first};
-                    auto account_table_id = vaccount.get_short_table_id();
-                    if (account_table_id != table_id) {
+                    auto account_table_id = vaccount.get_ledger_subaddr();
+                    if (static_cast<uint16_t>(account_table_id) != static_cast<uint16_t>(table_id)) {
                         continue;
                     }
                     MAP_SET(property, _p.first, _p.second);
@@ -74,8 +74,8 @@ void xtable_vote_contract::setup() {
             for (auto const & _p : db_kv_107) {
                 total_votes += base::xstring_utl::touint64(_p.second);
                 base::xvaccount_t vaccount{_p.first};
-                auto account_table_id = vaccount.get_short_table_id();
-                if (account_table_id != table_id) {
+                auto account_table_id = vaccount.get_ledger_subaddr();
+                if (static_cast<uint16_t>(account_table_id) != static_cast<uint16_t>(table_id)) {
                     continue;
                 }
                 MAP_SET(XPORPERTY_CONTRACT_POLLABLE_KEY, _p.first, _p.second);

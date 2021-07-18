@@ -35,11 +35,11 @@ xzec_vote_contract::xzec_vote_contract(common::xnetwork_id_t const & network_id)
 void xzec_vote_contract::setup() {
     // save shard total tickets
     MAP_CREATE(XPORPERTY_CONTRACT_TICKETS_KEY);
-    std::vector<std::pair<std::string, std::string>> db_kv_105;
-    chain_reset::xchain_reset_center_t::get_reset_stake_map_property(SELF_ADDRESS(), XPORPERTY_CONTRACT_TICKETS_KEY, db_kv_105);
-    for (auto const & _p : db_kv_105) {
-        MAP_SET(XPORPERTY_CONTRACT_TICKETS_KEY, _p.first, _p.second);
-    }
+    //std::vector<std::pair<std::string, std::string>> db_kv_105;
+    //chain_reset::xchain_reset_center_t::get_reset_stake_map_property(SELF_ADDRESS(), XPORPERTY_CONTRACT_TICKETS_KEY, db_kv_105);
+    //for (auto const & _p : db_kv_105) {
+    //    MAP_SET(XPORPERTY_CONTRACT_TICKETS_KEY, _p.first, _p.second);
+    //}
     /*{
         // test
         std::map<std::string, std::string> contract_auditor_votes;
@@ -77,40 +77,6 @@ int xzec_vote_contract::is_mainnet_activated() {
     xdbg("[xzec_vote_contract::is_mainnet_activated] activated: %d, pid:%d\n", record.activated, getpid());
     return record.activated;
 };
-
-void xzec_vote_contract::on_receive_shard_votes(std::map<std::string, std::string> contract_adv_votes) {
-    XMETRICS_COUNTER_INCREMENT(XVOTE_CONTRACT "on_receive_shard_votes_Called", 1);
-    XMETRICS_TIME_RECORD(XVOTE_CONTRACT "on_receive_shard_votes_ExecutionTime");
-    auto const& source_address = SOURCE_ADDRESS();
-    xdbg("[xzec_vote_contract::on_receive_shard_votes] contract addr: %s, contract_adv_votes size: %d, pid:%d\n",
-        source_address.c_str(), contract_adv_votes.size(), getpid());
-
-    std::string base_addr;
-    uint32_t    table_id;
-    if (!data::xdatautil::extract_parts(source_address, base_addr, table_id) || sys_contract_sharding_vote_addr != base_addr) {
-        xwarn("[xzec_vote_contract::on_receive_shard_votes] invalid call from %s", source_address.c_str());
-        return;
-    }
-
-    if ( !is_mainnet_activated() ) return;
-
-#if defined DEBUG
-     for (auto vote : contract_adv_votes) {
-        xdbg("[xzec_vote_contract::on_receive_shard_votes] node account: %s, votes: %llu",
-            vote.first.c_str(), base::xstring_utl::touint64(vote.second));
-    }
-#endif
-
-    xstream_t stream(xcontext_t::instance());
-    stream << contract_adv_votes;
-    std::string contract_adv_votes_str = std::string((const char*)stream.data(), stream.size());
-    {
-        XMETRICS_TIME_RECORD(XVOTE_CONTRACT "XPORPERTY_CONTRACT_TICKETS_KEY_SetExecutionTime");
-        MAP_SET(XPORPERTY_CONTRACT_TICKETS_KEY, source_address, contract_adv_votes_str);
-    }
-
-    XMETRICS_COUNTER_INCREMENT(XVOTE_CONTRACT "on_receive_shard_votes_Executed", 1);
-}
 
 bool xzec_vote_contract::handle_receive_shard_votes(uint64_t report_time, uint64_t last_report_time, std::map<std::string, std::string> const & contract_adv_votes, std::map<std::string, std::string> & merge_contract_adv_votes) {
     xdbg("[xzec_vote_contract::handle_receive_shard_votes] report vote table size: %d, original vote table size: %d",
