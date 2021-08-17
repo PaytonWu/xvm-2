@@ -411,7 +411,7 @@ xgroup_workload_t xtable_statistic_info_collection_contract::get_workload(common
         std::string value_str;
         if (MAP_GET2(XPORPERTY_CONTRACT_WORKLOAD_KEY, group_address_str, value_str)) {
         xdbg("[xtable_statistic_info_collection_contract::update_workload] group not exist: %s", group_address.to_string().c_str());
-            total_workload.cluster_id = group_address_str;
+            // total_workload.cluster_id = group_address_str;
         } else {
             xstream_t stream(xcontext_t::instance(), (uint8_t *)value_str.data(), value_str.size());
             total_workload.serialize_from(stream);

@@ -50,6 +50,8 @@ public:
     CONTRACT_FUNCTION_PARAM(xzec_workload_contract_v2, on_timer);
     END_CONTRACT_WITH_PARAM
 
+    void on_receive_workload2(xbyte_buffer_t const & workload_bytes);
+
 private:
     /**
      * @brief check if mainnet is activated
@@ -117,6 +119,32 @@ private:
      * @brief update_table_height
      */
     void update_table_height(const uint32_t table_id, uint64_t cur_read_height);
+
+    bool handle_recv_workload(std::string const & workload_str,
+                              common::xaccount_address_t const & table_addr_of_workload_data,
+                              uint16_t table_id,
+                              uint64_t table_height,
+                              bool mainnet_actived,
+                              std::map<std::string, std::string> const & current_workload_data,
+                              std::string & tgas_string,
+                              std::map<std::string, std::string> & updated_workload_data);
+
+    bool handle_recv_workload2(xbyte_buffer_t const & workload_bytes,
+                               common::xaccount_address_t const & table_addr_of_workload_data,
+                               uint16_t table_id,
+                               uint64_t table_height,
+                               bool mainnet_actived,
+                               std::map<std::string, std::string> const & current_workload_data,
+                               std::string & tgas_string,
+                               std::map<std::string, std::string> & updated_workload_data);
+
+    void do_update_tgas(int64_t input, std::string & current_tgas);
+
+    std::map<std::string, std::string> do_update_workload(std::map<std::string, std::string> const & current_workload_data,
+                                                          std::map<common::xgroup_address_t, top::xstake::xgroup_workload_t> const & uploaded_group_workload);
+
+    std::map<std::string, std::string> do_update_workload2(std::map<std::string, std::string> const & current_workload_data,
+                                                           std::map<common::xgroup_address_t, top::xstake::xgroup_workload_t> const & uploaded_group_workload);
 };
 
 NS_END3

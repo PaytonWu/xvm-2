@@ -698,7 +698,7 @@ void xzec_reward_contract::add_cluster_workload(bool auditor, std::string const&
 
     if (ret) {
         xdbg("[xzec_reward_contract::add_cluster_workload] cluster_id not exist, auditor: %d\n", auditor);
-        workload.cluster_id = cluster_id;
+        // workload.cluster_id = cluster_id;
     } else {
         xstream_t stream(xcontext_t::instance(), (uint8_t*)value_str.data(), value_str.size());
         workload.serialize_from(stream);
