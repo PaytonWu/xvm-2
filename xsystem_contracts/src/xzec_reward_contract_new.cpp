@@ -150,7 +150,7 @@ void xtop_zec_reward_contract_new::update_reg_contract_read_status(const common:
     auto const timeout_limitation = XGET_ONCHAIN_GOVERNANCE_PARAMETER(cross_reading_rec_reg_contract_logic_timeout_limitation);
 
     // uint64_t latest_height = get_blockchain_height(sys_contract_rec_registration_addr);
-    uint64_t latest_height = state()->state_height(common::xaccount_address_t{sys_contract_rec_registration_addr});
+    uint64_t latest_height = state_height(common::xaccount_address_t{sys_contract_rec_registration_addr});
     xdbg("[xtop_zec_reward_contract_new::update_reg_contract_read_status] cur_time: %llu, last_read_time: %llu, last_read_height: %llu, latest_height: %" PRIu64,
          cur_time,
          last_read_time,
@@ -174,7 +174,7 @@ void xtop_zec_reward_contract_new::update_reg_contract_read_status(const common:
 
     if (update_rec_reg_contract_read_status) {
         // xauto_ptr<xblock_t> block_ptr = get_block_by_height(sys_contract_rec_registration_addr, next_read_height);
-        XCONTRACT_ENSURE(state()->block_exist(common::xaccount_address_t{sys_contract_rec_registration_addr}, next_read_height) == true, "fail to get the rec_reg data");
+        XCONTRACT_ENSURE(block_exist(common::xaccount_address_t{sys_contract_rec_registration_addr}, next_read_height) == true, "fail to get the rec_reg data");
         XMETRICS_PACKET_INFO(XREWARD_CONTRACT "update_status", "next_read_height", next_read_height, "current_time", cur_time)
         // STRING_SET(XPROPERTY_LAST_READ_REC_REG_CONTRACT_BLOCK_HEIGHT, std::to_string(next_read_height));
         // STRING_SET(XPROPERTY_LAST_READ_REC_REG_CONTRACT_LOGIC_TIME, std::to_string(cur_time));
@@ -646,9 +646,9 @@ void xtop_zec_reward_contract_new::get_reward_onchain_param(xreward_onchain_para
 void xtop_zec_reward_contract_new::get_reward_param(xreward_onchain_param_t & onchain_param, xreward_property_param_t & property_param) {
     // get onchain param
     get_reward_onchain_param(onchain_param);
-    property_param.zec_vote_contract_height = state()->state_height(common::xaccount_address_t{sys_contract_zec_vote_addr});
-    property_param.zec_workload_contract_height = state()->state_height(common::xaccount_address_t{sys_contract_zec_workload_addr});
-    property_param.zec_reward_contract_height = state()->state_height(common::xaccount_address_t{sys_contract_zec_reward_addr});
+    property_param.zec_vote_contract_height = state_height(common::xaccount_address_t{sys_contract_zec_vote_addr});
+    property_param.zec_workload_contract_height = state_height(common::xaccount_address_t{sys_contract_zec_workload_addr});
+    property_param.zec_reward_contract_height = state_height(common::xaccount_address_t{sys_contract_zec_reward_addr});
 
     xinfo("[xtop_zec_reward_contract_new::get_reward_param] m_zec_vote_contract_height: %u, m_zec_workload_contract_height: %u, m_zec_reward_contract_height: %u",
           property_param.zec_vote_contract_height,
@@ -1679,11 +1679,11 @@ xaccumulated_reward_record xtop_zec_reward_contract_new::accumulated_reward_dese
 xactivation_record xtop_zec_reward_contract_new::get_activation_record() {
     xactivation_record activation_record;
     // std::string activation_str = STRING_GET2(XPORPERTY_CONTRACT_GENESIS_STAGE_KEY, sys_contract_rec_registration_addr);
-    contract_common::properties::xstring_property_t active_prop{XPORPERTY_CONTRACT_GENESIS_STAGE_KEY, this};
-    auto activation_str = active_prop.value();
+    contract_common::properties::xstring_property_t genesis_prop{XPORPERTY_CONTRACT_GENESIS_STAGE_KEY, this};
+    auto genesis_str = genesis_prop.value(common::xaccount_address_t{sys_contract_rec_registration_addr});
 
-    XCONTRACT_ENSURE(!activation_str.empty(), "activation_str");
-    xstream_t stream{xcontext_t::instance(), (uint8_t *)activation_str.c_str(), (uint32_t)activation_str.size()};
+    XCONTRACT_ENSURE(!genesis_str.empty(), "activation_str");
+    xstream_t stream{xcontext_t::instance(), (uint8_t *)genesis_str.c_str(), (uint32_t)genesis_str.size()};
     activation_record.serialize_from(stream);
     return activation_record;
 }

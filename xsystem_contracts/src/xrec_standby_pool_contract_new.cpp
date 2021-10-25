@@ -411,7 +411,6 @@ bool xtop_rec_standby_pool_contract_new::update_standby_result_store(std::map<co
 }
 
 void xtop_rec_standby_pool_contract_new::on_timer(common::xlogic_time_t const current_time) {
-#if 0
 #ifdef STATIC_CONSENSUS
     // static_consensus won't sync registration contract data.
     return;
@@ -439,12 +438,12 @@ void xtop_rec_standby_pool_contract_new::on_timer(common::xlogic_time_t const cu
     XCONTRACT_ENSURE(!registration_data.empty(), "read registration data failed");
     ;
     // auto standby_result_store = serialization::xmsgpack_t<xstandby_result_store_t>::deserialize_from_string_prop(*this, XPROPERTY_CONTRACT_STANDBYS_KEY);
-    auto standby_result_store = serialization::xmsgpack_t<xstandby_result_store_t>::deserialize_from_string_prop(m_standby_prop.query());
+    auto standby_result_store = serialization::xmsgpack_t<xstandby_result_store_t>::deserialize_from_string_prop(m_standby_prop.value());
 
     xactivation_record activation_record;
     // std::string value_str = STRING_GET2(XPORPERTY_CONTRACT_GENESIS_STAGE_KEY, sys_contract_rec_registration_addr);
     contract_common::properties::xstring_property_t genesis_prop{XPORPERTY_CONTRACT_GENESIS_STAGE_KEY, this};
-    std::string value_str = genesis_prop.query(common::xaccount_address_t{sys_contract_rec_registration_addr});
+    std::string value_str = genesis_prop.value(common::xaccount_address_t{sys_contract_rec_registration_addr});
     if (!value_str.empty()) {
         base::xstream_t stream(base::xcontext_t::instance(), (uint8_t *)value_str.c_str(), (uint32_t)value_str.size());
         activation_record.serialize_from(stream);
@@ -453,9 +452,8 @@ void xtop_rec_standby_pool_contract_new::on_timer(common::xlogic_time_t const cu
     if (update_standby_result_store(registration_data, standby_result_store, activation_record)) {
         xdbg("[xrec_standby_pool_contract_t][on_timer] standby pool updated");
         // serialization::xmsgpack_t<xstandby_result_store_t>::serialize_to_string_prop(*this, XPROPERTY_CONTRACT_STANDBYS_KEY, standby_result_store);
-        m_standby_prop.update(serialization::xmsgpack_t<xstandby_result_store_t>::serialize_to_string_prop(standby_result_store));
+        m_standby_prop.set(serialization::xmsgpack_t<xstandby_result_store_t>::serialize_to_string_prop(standby_result_store));
     }
-#endif
 }
 
 NS_END2
