@@ -28,15 +28,8 @@ NS_BEG2(top, system_contracts)
 #define TIMER_ADJUST_DENOMINATOR 10
 
 void xtop_rec_registration_contract_new::setup() {
-    //m_genesis_prop.initialize();
-    //m_reg_prop.initialize();
-    //m_tickets_prop.initialize();
-    //m_refund_prop.initialize();
-    //m_slash_prop.initialize();
-    //m_votes_report_time_prop.initialize();
-
     std::vector<std::pair<std::string, std::string>> db_kv_101;
-    xchain_data_processor_t::get_stake_map_property(address(), XPORPERTY_CONTRACT_REG_KEY, db_kv_101);
+    xchain_data_processor_t::get_stake_map_property(common::xlegacy_account_address_t{address()}, XPORPERTY_CONTRACT_REG_KEY, db_kv_101);
     for (auto const & _p : db_kv_101) {
         auto const & node_info_serialized = _p.second;
 
@@ -71,19 +64,19 @@ void xtop_rec_registration_contract_new::setup() {
     }
 
     std::vector<std::pair<std::string, std::string>> db_kv_128;
-    xchain_data_processor_t::get_stake_map_property(address(), XPORPERTY_CONTRACT_REFUND_KEY, db_kv_128);
+    xchain_data_processor_t::get_stake_map_property(common::xlegacy_account_address_t{address()}, XPORPERTY_CONTRACT_REFUND_KEY, db_kv_128);
     for (auto const & _p : db_kv_128) {
         m_refund_prop.set(_p.first, _p.second);
     }
 
     std::vector<std::pair<std::string, std::string>> db_kv_132;
-    xchain_data_processor_t::get_stake_map_property(address(), XPROPERTY_CONTRACT_SLASH_INFO_KEY, db_kv_132);
+    xchain_data_processor_t::get_stake_map_property(common::xlegacy_account_address_t{address()}, XPROPERTY_CONTRACT_SLASH_INFO_KEY, db_kv_132);
     for (auto const & _p : db_kv_132) {
         m_slash_prop.set(_p.first, _p.second);
     }
 
     std::string db_kv_129;
-    xchain_data_processor_t::get_stake_string_property(address(), XPORPERTY_CONTRACT_GENESIS_STAGE_KEY, db_kv_129);
+    xchain_data_processor_t::get_stake_string_property(common::xlegacy_account_address_t{address()}, XPORPERTY_CONTRACT_GENESIS_STAGE_KEY, db_kv_129);
     if (!db_kv_129.empty()) {
         m_genesis_prop.set(db_kv_129);
     }
@@ -100,7 +93,7 @@ void xtop_rec_registration_contract_new::setup() {
                 for (uint32_t j = 0; j < old_tables_count; j++) {
                     auto table_addr = std::string{sys_contract_sharding_vote_addr} + "@" + xstring_utl::tostring(j);
                     std::vector<std::pair<std::string, std::string>> db_kv_112;
-                    xchain_data_processor_t::get_stake_map_property(common::xaccount_address_t{table_addr}, property, db_kv_112);
+                    xchain_data_processor_t::get_stake_map_property(common::xlegacy_account_address_t{table_addr}, property, db_kv_112);
                     for (auto const & _p : db_kv_112) {
                         xvaccount_t vaccount{_p.first};
                         auto account_table_id = vaccount.get_ledger_subaddr();
@@ -147,7 +140,7 @@ void xtop_rec_registration_contract_new::setup() {
     }
 
     data_processor_t data;
-    xtop_chain_data_processor::get_contract_data(address(), data);
+    xtop_chain_data_processor::get_contract_data(common::xlegacy_account_address_t{address()}, data);
     // TOP_TOKEN_INCREASE(data.top_balance);
     deposit(state_accessor::xtoken_t{static_cast<uint64_t>(data.top_balance)});
 
@@ -168,7 +161,7 @@ void xtop_rec_registration_contract_new::setup() {
     m_genesis_prop.set(std::string((char *)stream.data(), stream.size()));
 #endif
 
-    xdbg("[xrec_registration_contract::setup] pid:%d\n", getpid());
+    xdbg("[xrec_registration_contract::setup] pid:%d", getpid());
     if (elect::ElectOption::Instance()->IsEnableStaticec()) {
         return;
     }
