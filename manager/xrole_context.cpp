@@ -149,10 +149,11 @@ void xrole_context_t::on_block_timer(const xevent_ptr_t & e) {
         }
 
         auto const & fork_config = top::chain_fork::xtop_chain_fork_config_center::chain_fork_config();
-        if (chain_fork::xchain_fork_config_center_t::is_forked(fork_config.new_system_contract_runtime_fork_point, block->get_height())) {
-            return;
-        }
+        //if (chain_upgrade::xchain_fork_config_center_t::is_forked(fork_config.new_system_contract_runtime_fork_point, block->get_height())) {
+        //    return;
+        //}
         if (info != nullptr) {
+            assert(false);
             bool do_call{false};
             uint64_t block_timestamp{0};
             uint64_t onchain_timer_round{0};
