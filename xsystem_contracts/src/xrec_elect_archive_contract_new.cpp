@@ -55,7 +55,7 @@ void xtop_rec_elect_archive_contract_new::elect_config_nodes(common::xlogic_time
     }
 
     std::map<common::xgroup_id_t, contract_common::properties::xbytes_property_t *> properties{{common::xarchive_group_id, std::addressof(m_archive_result)},
-                                                                                               {common::xfull_node_group_id, std::addressof(m_fullnode_result)}};
+                                                                                               {common::xexchange_group_id, std::addressof(m_exchange_result)}};
 
     using top::data::election::xelection_info_bundle_t;
     using top::data::election::xelection_info_t;
@@ -72,9 +72,9 @@ void xtop_rec_elect_archive_contract_new::elect_config_nodes(common::xlogic_time
         if (archive_gid.value() == common::xarchive_group_id_value) {
             node_type = common::xnode_type_t::storage_archive;
             static_node_str = "archive_start_nodes";
-        } else if (archive_gid.value() == common::xfull_node_group_id_value) {
-            node_type = common::xnode_type_t::storage_full_node;
-            static_node_str = "fullnode_start_nodes";
+        } else if (archive_gid.value() == common::xexchange_group_id_value) {
+            node_type = common::xnode_type_t::storage_exchange;
+            static_node_str = "exchange_start_nodes";
         } else {
             xassert(false);
         }
@@ -114,7 +114,7 @@ void xtop_rec_elect_archive_contract_new::setup() {
     auto const & bytes = contract_common::serialization::xmsgpack_t<xelection_result_store_t>::serialize_to_bytes(election_result_store);
 
     m_archive_result.set(bytes);
-    m_fullnode_result.set(bytes);
+    m_exchange_result.set(bytes);
 }
 
 void xtop_rec_elect_archive_contract_new::on_timer(const uint64_t current_time) {
@@ -142,7 +142,7 @@ void xtop_rec_elect_archive_contract_new::on_timer(const uint64_t current_time) 
     xinfo("xrec_elect_archive_contract_new_t::archive_elect %" PRIu64, current_time);
 
     xrange_t<config::xgroup_size_t> archive_group_range{ 1, XGET_ONCHAIN_GOVERNANCE_PARAMETER(max_archive_group_size) };
-    xrange_t<config::xgroup_size_t> full_node_group_range{ 0, XGET_ONCHAIN_GOVERNANCE_PARAMETER(max_archive_group_size) };
+    xrange_t<config::xgroup_size_t> exchange_group_range{ 0, XGET_ONCHAIN_GOVERNANCE_PARAMETER(max_archive_group_size) };
 
     auto const & rec_standby_bytes_property = get_property<contract_common::properties::xbytes_property_t>(
         state_accessor::properties::xtypeless_property_identifier_t{data::XPROPERTY_CONTRACT_STANDBYS_KEY}, common::xaccount_address_t{sys_contract_rec_standby_pool_addr});
@@ -158,7 +158,7 @@ void xtop_rec_elect_archive_contract_new::on_timer(const uint64_t current_time) 
 #endif
 
     elect_archive(current_time, standby_network_result);
-    elect_fullnode(current_time, standby_network_result);
+    elect_exchange(current_time, standby_network_result);
 }
 
 common::xnode_type_t xtop_rec_elect_archive_contract_new::standby_type(common::xzone_id_t const & zid, common::xcluster_id_t const & cid, common::xgroup_id_t const & gid) const {
@@ -168,14 +168,14 @@ common::xnode_type_t xtop_rec_elect_archive_contract_new::standby_type(common::x
 
     assert(zid == common::xarchive_zone_id);
     assert(cid == common::xdefault_cluster_id);
-    assert(gid == common::xarchive_group_id || gid == common::xfull_node_group_id);
+    assert(gid == common::xarchive_group_id || gid == common::xexchange_group_id);
 
     if (gid == common::xarchive_group_id) {
         return common::xnode_type_t::storage_archive;
     }
 
-    if (gid == common::xfull_node_group_id) {
-        return common::xnode_type_t::storage_full_node;
+    if (gid == common::xexchange_group_id) {
+        return common::xnode_type_t::storage_exchange;
     }
 
     assert(false);
@@ -202,27 +202,27 @@ void xtop_rec_elect_archive_contract_new::elect_archive(common::xlogic_time_t co
     }
 }
 
-void xtop_rec_elect_archive_contract_new::elect_fullnode(common::xlogic_time_t const current_time, data::election::xstandby_network_result_t const & standby_network_result) {
-    if (standby_network_result.empty(common::xnode_type_t::storage_full_node)) {
+void xtop_rec_elect_archive_contract_new::elect_exchange(common::xlogic_time_t const current_time, data::election::xstandby_network_result_t const & standby_network_result) {
+    if (standby_network_result.empty(common::xnode_type_t::storage_exchange)) {
         return;
     }
 
     xkinfo("[xrec_elect_archive_contract_new_t] archive_gid: %s, insert %s",
-           common::xfull_node_group_id.to_string().c_str(),
-           data::election::get_property_by_group_id(common::xfull_node_group_id).c_str());
+           common::xexchange_group_id.to_string().c_str(),
+           data::election::get_property_by_group_id(common::xexchange_group_id).c_str());
 
-    auto election_result_store = contract_common::serialization::xmsgpack_t<xelection_result_store_t>::deserialize_from_bytes(m_fullnode_result.value());
+    auto election_result_store = contract_common::serialization::xmsgpack_t<xelection_result_store_t>::deserialize_from_bytes(m_exchange_result.value());
     auto & election_network_result = election_result_store.result_of(network_id());
 
     if (elect_group(common::xarchive_zone_id,
                     common::xdefault_cluster_id,
-                    common::xfull_node_group_id,
+                    common::xexchange_group_id,
                     current_time,
                     current_time,
                     xrange_t<config::xgroup_size_t>{0, XGET_ONCHAIN_GOVERNANCE_PARAMETER(max_archive_group_size)},
                     standby_network_result,
                     election_network_result)) {
-        m_fullnode_result.set(contract_common::serialization::xmsgpack_t<xelection_result_store_t>::serialize_to_bytes(election_result_store));
+        m_exchange_result.set(contract_common::serialization::xmsgpack_t<xelection_result_store_t>::serialize_to_bytes(election_result_store));
     }
 }
 

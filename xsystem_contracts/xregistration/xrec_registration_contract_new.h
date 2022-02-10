@@ -240,6 +240,13 @@ private:
     bool is_valid_name(const std::string & nickname) const;
 
     /**
+     * @brief init validator/auditor node credit
+     *
+     * @param node_info
+     */
+    void init_node_credit(xstake::xreg_node_info & node_info, bool isforked);
+
+    /**
      * @brief check if signing key exists
      *
      * @param signing_key

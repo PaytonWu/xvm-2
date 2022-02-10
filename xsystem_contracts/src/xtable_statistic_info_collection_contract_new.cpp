@@ -6,7 +6,6 @@
 
 #include "xbase/xmem.h"
 #include "xcertauth/xcertauth_face.h"
-#include "xchain_fork/xchain_upgrade_center.h"
 #include "xcommon/xip.h"
 #include "xdata/xdata_common.h"
 #include "xdata/xnative_contract_address.h"
@@ -52,12 +51,6 @@ void xtable_statistic_info_collection_contract_new::on_collect_statistic_info(xs
     XCONTRACT_ENSURE(data::xdatautil::extract_parts(source_account.value(), base_addr, table_id), "source address extract base_addr or table_id error!");
     xdbg("[xtable_statistic_info_collection_contract_new][on_collect_statistic_info] self_account %s, source_addr %s, base_addr %s\n", self_account.c_str(), source_account.c_str(), base_addr.c_str());
     XCONTRACT_ENSURE(source_account == self_account && base_addr == top::sys_contract_sharding_statistic_info_addr, "invalid source addr's call!");
-
-    auto fork_config = top::chain_fork::xtop_chain_fork_config_center::chain_fork_config();
-    if (!chain_fork::xtop_chain_fork_config_center::is_forked(fork_config.table_statistic_info_fork_point, time())) {
-        xdbg("[xtable_statistic_info_collection_contract_new][on_collect_statistic_info] not fork point time");
-        return;
-    }
 
     // check if the block processed
     uint64_t cur_statistic_height = 0;
@@ -232,12 +225,6 @@ void xtable_statistic_info_collection_contract_new::report_summarized_statistic_
     XCONTRACT_ENSURE(data::xdatautil::extract_parts(source_account.value(), base_addr, table_id), "source address extract base_addr or table_id error!");
     xdbg("[xtable_statistic_info_collection_contract_new][report_summarized_statistic_info] self_account %s, source_addr %s, base_addr %s\n", self_account.c_str(), source_account.c_str(), base_addr.c_str());
     XCONTRACT_ENSURE(source_account == self_account && base_addr == top::sys_contract_sharding_statistic_info_addr, "invalid source addr's call!");
-
-    auto fork_config = top::chain_fork::xtop_chain_fork_config_center::chain_fork_config();
-    if (!chain_fork::xtop_chain_fork_config_center::is_forked(fork_config.table_statistic_info_fork_point, time())) {
-        xdbg("[xtable_statistic_info_collection_contract_new][on_collect_statistic_info] not fork point time");
-        return;
-    }
 
     uint32_t summarize_fulltableblock_num = 0;
     std::string value_str;

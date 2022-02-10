@@ -11,6 +11,7 @@
 #include "xstore/xaccount_context.h"
 
 NS_BEG2(top, xvm)
+#if !defined(XCONTRACT_ENSURE)
 #define XCONTRACT_ENSURE(condition, msg)                                                     \
     do {                                                                                     \
         if (!(condition)) {                                                                  \
@@ -18,6 +19,7 @@ NS_BEG2(top, xvm)
             top::error::throw_error(ec, msg);                                                \
         }                                                                                    \
     } while (false)
+#endif
 
 class xcontract_helper {
 public:

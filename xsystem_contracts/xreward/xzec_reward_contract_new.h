@@ -353,7 +353,7 @@ private:
      * @param map_nodes nodes to count
      * @return count resualt
      */
-    std::vector<std::vector<uint32_t>> calc_role_nums(std::map<common::xaccount_address_t, xstake::xreg_node_info> const & map_nodes);
+    std::vector<std::vector<uint32_t>> calc_role_nums(std::map<common::xaccount_address_t, xstake::xreg_node_info> const & map_nodes, bool fullnode_enabled);
 
     /**
      * @brief set votes_detail into map_nodes and calculate total valid auditor votes
@@ -431,6 +431,7 @@ private:
     void calc_archive_workload_rewards(xstake::xreg_node_info const & node,
                                        std::vector<uint32_t> const & archive_num,
                                        const top::xstake::uint128_t archive_workload_rewards,
+                                       bool const fullnode_enabled,
                                        top::xstake::uint128_t & reward_to_self);
 
     /**

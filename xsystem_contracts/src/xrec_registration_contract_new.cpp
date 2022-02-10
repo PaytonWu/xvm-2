@@ -4,6 +4,8 @@
 
 #include "xvm/xsystem_contracts/xregistration/xrec_registration_contract_new.h"
 
+
+#include "xchain_fork/xchain_upgrade_center.h"
 #include "xchain_upgrade/xchain_data_processor.h"
 #include "xdata/xnative_contract_address.h"
 #include "xdata/xrootblock.h"
@@ -36,22 +38,22 @@ void xtop_rec_registration_contract_new::setup() {
         xreg_node_info node_info;
         node_info.serialize_from(stream);
 
-        auto old_role = static_cast<common::xold_role_type_t>(node_info.m_registered_role);
+        auto old_role = static_cast<common::xlegacy_miner_type_t>(node_info.miner_type());
         switch (old_role) {
-        case common::xold_role_type_t::advance:
-            node_info.m_registered_role = common::xrole_type_t::advance;
+        case common::xlegacy_miner_type_t::advance:
+            node_info.miner_type(common::xminer_type_t::advance);
             break;
 
-        case common::xold_role_type_t::consensus:
-            node_info.m_registered_role = common::xrole_type_t::validator;
+        case common::xlegacy_miner_type_t::consensus:
+            node_info.miner_type(common::xminer_type_t::validator);
             break;
 
-        case common::xold_role_type_t::archive:
-            node_info.m_registered_role = common::xrole_type_t::archive;
+        case common::xlegacy_miner_type_t::archive:
+            node_info.miner_type(common::xminer_type_t::archive);
             break;
 
-        case common::xold_role_type_t::edge:
-            node_info.m_registered_role = common::xrole_type_t::edge;
+        case common::xlegacy_miner_type_t::edge:
+            node_info.miner_type(common::xminer_type_t::edge);
             break;
 
         default:
@@ -174,7 +176,11 @@ void xtop_rec_registration_contract_new::setup() {
             node_info.m_account             = node_data.m_account;
             node_info.m_account_mortgage    = 0;
             node_info.m_genesis_node        = true;
-            node_info.m_registered_role     = common::xrole_type_t::edge | common::xrole_type_t::advance | common::xrole_type_t::validator;
+#if defined(XBUILD_DEV)
+            node_info.miner_type(common::xminer_type_t::edge | common::xminer_type_t::advance | common::xminer_type_t::validator | common::xminer_type_t::archive);
+#else
+            node_info.miner_type(common::xminer_type_t::edge | common::xminer_type_t::advance | common::xminer_type_t::validator);
+#endif
             node_info.m_network_ids.insert(network_id);
             node_info.nickname              = std::string("bootnode") + std::to_string(i + 1);
             node_info.consensus_public_key  = xpublic_key_t{node_data.m_publickey};
@@ -253,8 +259,8 @@ void xtop_rec_registration_contract_new::registerNode2(const std::string & role_
     xreg_node_info node_info;
     auto ret = get_node_info(account.value(), node_info);
     XCONTRACT_ENSURE(ret != 0, "xrec_registration_contract_new_t::registerNode2: node exist!");
-    common::xrole_type_t role_type = common::to_role_type(role_type_name);
-    XCONTRACT_ENSURE(role_type != common::xrole_type_t::invalid, "xrec_registration_contract_new_t::registerNode2: invalid node_type!");
+    auto const role_type = common::to_miner_type(role_type_name);
+    XCONTRACT_ENSURE(role_type != common::xminer_type_t::invalid, "xrec_registration_contract_new_t::registerNode2: invalid node_type!");
     XCONTRACT_ENSURE(is_valid_name(nickname) == true, "xrec_registration_contract_new_t::registerNode: invalid nickname");
     XCONTRACT_ENSURE(dividend_rate >= 0 && dividend_rate <= 100, "xrec_registration_contract_new_t::registerNode: dividend_rate must be >=0 and be <= 100");
 
@@ -266,7 +272,7 @@ void xtop_rec_registration_contract_new::registerNode2(const std::string & role_
     top::error::throw_error(ec);
 
     node_info.m_account = account;
-    node_info.m_registered_role = role_type;
+    node_info.miner_type(role_type);
 #if defined(XENABLE_MOCK_ZEC_STAKE)
     token_amount = 100000000000000;
     node_info.m_account_mortgage = 100000000000000;
@@ -289,16 +295,11 @@ void xtop_rec_registration_contract_new::registerNode2(const std::string & role_
         node_info.m_network_ids = network_ids;
     }
 
-    if (node_info.is_validator_node()) {
-        if (node_info.m_validator_credit_numerator == 0) {
-            node_info.m_validator_credit_numerator = XGET_ONCHAIN_GOVERNANCE_PARAMETER(min_credit);
-        }
-    }
-    if (node_info.is_auditor_node()) {
-        if (node_info.m_auditor_credit_numerator == 0) {
-            node_info.m_auditor_credit_numerator = XGET_ONCHAIN_GOVERNANCE_PARAMETER(min_credit);
-        }
-    }
+    // auto const& fork_config = top::chain_fork::xtop_chain_fork_config_center::chain_fork_config();
+    bool isforked = false;
+    // chain_fork::xtop_chain_fork_config_center::is_forked(fork_config.node_initial_credit_fork_point, TIME());
+    init_node_credit(node_info, isforked);
+
     uint64_t min_deposit = node_info.get_required_min_deposit();
     xdbg(("[xrec_registration_contract_new_t::registerNode2] call xregistration_contract registerNode() pid:%d, transaction_type:%d, source action type: %d, m_deposit: %" PRIu64
           ", min_deposit: %" PRIu64 ", account: %s"),
@@ -375,11 +376,11 @@ void xtop_rec_registration_contract_new::updateNodeInfo(const std::string & nick
     XCONTRACT_ENSURE(is_valid_name(nickname) == true, "xrec_registration_contract_new_t::updateNodeInfo: invalid nickname");
     XCONTRACT_ENSURE(updateDepositType == 1 || updateDepositType == 2, "xrec_registration_contract_new_t::updateNodeInfo: invalid updateDepositType");
     XCONTRACT_ENSURE(dividend_rate >= 0 && dividend_rate <= 100, "xrec_registration_contract_new_t::updateNodeInfo: dividend_rate must be greater than or be equal to zero");
-    common::xrole_type_t role_type = common::to_role_type(node_types);
-    XCONTRACT_ENSURE(role_type != common::xrole_type_t::invalid, "xrec_registration_contract_new_t::updateNodeInfo: invalid node_type!");
+    auto const role_type = common::to_miner_type(node_types);
+    XCONTRACT_ENSURE(role_type != common::xminer_type_t::invalid, "xrec_registration_contract_new_t::updateNodeInfo: invalid node_type!");
 
     node_info.nickname          = nickname;
-    node_info.m_registered_role = role_type;
+    node_info.miner_type(role_type);
 
     uint64_t min_deposit = node_info.get_required_min_deposit();
     if (updateDepositType == 1) { // stake deposit
@@ -410,16 +411,9 @@ void xtop_rec_registration_contract_new::updateNodeInfo(const std::string & nick
         node_info.m_last_update_time = cur_time;
     }
     node_info.consensus_public_key = xpublic_key_t{node_sign_key};
-    if (node_info.is_validator_node()) {
-        if (node_info.m_validator_credit_numerator == 0) {
-            node_info.m_validator_credit_numerator = XGET_ONCHAIN_GOVERNANCE_PARAMETER(min_credit);
-        }
-    }
-    if (node_info.is_auditor_node()) {
-        if (node_info.m_auditor_credit_numerator == 0) {
-            node_info.m_auditor_credit_numerator = XGET_ONCHAIN_GOVERNANCE_PARAMETER(min_credit);
-        }
-    }
+    // auto const& fork_config = top::chain_fork::xtop_chain_fork_config_center::chain_fork_config();
+    bool isforked = false;  // chain_fork::xtop_chain_fork_config_center::is_forked(fork_config.node_initial_credit_fork_point, TIME());
+    init_node_credit(node_info, isforked);
 
     update_node_info(node_info);
     XMETRICS_COUNTER_INCREMENT(XREG_CONTRACT "updateNodeInfo_Executed", 1);
@@ -677,7 +671,7 @@ void xtop_rec_registration_contract_new::update_batch_stake(std::map<std::string
         xreg_node_info reg_node_info;
         reg_node_info.serialize_from(stream);
 
-        if (!reg_node_info.is_auditor_node()) {
+        if (!reg_node_info.could_be_auditor()) {
             continue;
         }
 
@@ -807,7 +801,10 @@ void xtop_rec_registration_contract_new::check_and_set_genesis_stage() {
     }
 
     auto map_nodes = m_reg_prop.value();
-    bool active = check_registered_nodes_active(map_nodes);
+
+    auto const & fork_config = chain_fork::xchain_fork_config_center_t::chain_fork_config();
+    auto const fullnode_enabled = chain_fork::xchain_fork_config_center_t::is_forked(fork_config.enable_fullnode_election_fork_point, time());
+    bool active = check_registered_nodes_active(map_nodes, fullnode_enabled);
     if (active) {
         record.activated = 1;
         record.activation_time = time();
@@ -831,10 +828,10 @@ void xtop_rec_registration_contract_new::updateNodeType(const std::string & node
     XCONTRACT_ENSURE(ret == 0, "xtop_rec_registration_contract_new::updateNodeType: node not exist");
 
 
-    common::xrole_type_t role_type = common::to_role_type(node_types);
-    XCONTRACT_ENSURE(role_type != common::xrole_type_t::invalid, "xtop_rec_registration_contract_new::updateNodeType: invalid node_type!");
-    XCONTRACT_ENSURE(role_type != node_info.m_registered_role, "xtop_rec_registration_contract_new::updateNodeType: node_types can not be same!");
-    node_info.m_registered_role  = role_type;
+    auto const role_type = common::to_miner_type(node_types);
+    XCONTRACT_ENSURE(role_type != common::xminer_type_t::invalid, "xtop_rec_registration_contract_new::updateNodeType: invalid node_type!");
+    XCONTRACT_ENSURE(role_type != node_info.miner_type(), "xtop_rec_registration_contract_new::updateNodeType: node_types can not be same!");
+    node_info.miner_type(role_type);
 
     std::error_code ec;
     auto token = last_action_asset(ec);
@@ -849,17 +846,10 @@ void xtop_rec_registration_contract_new::updateNodeType(const std::string & node
         min_deposit, source_account.c_str(), node_info.m_account_mortgage);
     XCONTRACT_ENSURE(node_info.m_account_mortgage >= min_deposit, "xtop_rec_registration_contract_new::updateNodeType: deposit not enough");
 
-    if (node_info.is_validator_node()) {
-        if (node_info.m_validator_credit_numerator == 0) {
-            node_info.m_validator_credit_numerator = XGET_ONCHAIN_GOVERNANCE_PARAMETER(min_credit);
-        }
-    }
-    if (node_info.is_auditor_node()) {
-        if (node_info.m_auditor_credit_numerator == 0) {
-            node_info.m_auditor_credit_numerator = XGET_ONCHAIN_GOVERNANCE_PARAMETER(min_credit);
-        }
-    }
-
+    // auto const& fork_config = top::chain_fork::xtop_chain_fork_config_center::chain_fork_config();
+    // bool isforked = chain_fork::xtop_chain_fork_config_center::is_forked(fork_config.node_initial_credit_fork_point, TIME());
+    bool isforked = false;
+    init_node_credit(node_info, isforked);
     update_node_info(node_info);
     check_and_set_genesis_stage();
 
@@ -1003,6 +993,27 @@ bool xtop_rec_registration_contract_new::is_valid_name(const std::string & nickn
 
     return std::find_if(nickname.begin(), nickname.end(), [](unsigned char c) { return !std::isalnum(c) && c != '_'; }) == nickname.end();
 };
+
+void xtop_rec_registration_contract_new::init_node_credit(xreg_node_info & node_info, bool isforked) {
+    if (node_info.could_be_validator()) {
+        if (node_info.m_validator_credit_numerator == 0) {
+            if (isforked) {
+                node_info.m_validator_credit_numerator = XGET_ONCHAIN_GOVERNANCE_PARAMETER(initial_creditscore);
+            } else {
+                node_info.m_validator_credit_numerator = XGET_ONCHAIN_GOVERNANCE_PARAMETER(min_creditscore);
+            }
+        }
+    }
+    if (node_info.could_be_auditor()) {
+        if (node_info.m_auditor_credit_numerator == 0) {
+            if (isforked) {
+                node_info.m_auditor_credit_numerator = XGET_ONCHAIN_GOVERNANCE_PARAMETER(initial_creditscore);
+            } else {
+                node_info.m_auditor_credit_numerator = XGET_ONCHAIN_GOVERNANCE_PARAMETER(min_creditscore);
+            }
+        }
+    }
+}
 
 NS_END2
 

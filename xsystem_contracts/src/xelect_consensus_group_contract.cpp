@@ -350,7 +350,7 @@ bool xtop_elect_consensus_group_contract::do_normal_election(common::xzone_id_t 
                                                              common::xcluster_id_t const & cid,
                                                              common::xgroup_id_t const & gid,
                                                              common::xnode_type_t const node_type,
-                                                             common::xminer_type_t const role_type,
+                                                             common::xminer_type_t const miner_type,
                                                               std::uint64_t const random_seed,
                                                              xrange_t<config::xgroup_size_t> const & group_size_range,
                                                              data::election::xstandby_result_t const & standby_result,
@@ -368,7 +368,7 @@ bool xtop_elect_consensus_group_contract::do_normal_election(common::xzone_id_t 
                                               top::get<xstandby_node_info_t>(standby_info).consensus_public_key);
     }
 
-    normalize_stake(role_type, effective_standby_result);
+    normalize_stake(miner_type, effective_standby_result);
 
     // preparing the fts selection. rule:
     // when electing in, the higher the stake is, the higher the possibility is.

@@ -15,7 +15,7 @@ NS_BEG2(top, system_contracts)
 
 class xtop_rec_elect_archive_contract_new final : public xelect_nonconsensus_group_contract_new_t {
     contract_common::properties::xbytes_property_t m_archive_result{data::election::get_property_by_group_id(common::xarchive_group_id), this};
-    contract_common::properties::xbytes_property_t m_fullnode_result{data::election::get_property_by_group_id(common::xfull_node_group_id), this};
+    contract_common::properties::xbytes_property_t m_exchange_result{data::election::get_property_by_group_id(common::xexchange_group_id), this};
 
 public:
     xtop_rec_elect_archive_contract_new() = default;
@@ -42,7 +42,7 @@ private:
 #endif
 
     void elect_archive(common::xlogic_time_t const current_time, data::election::xstandby_network_result_t const & standby_network_result);
-    void elect_fullnode(common::xlogic_time_t const current_time, data::election::xstandby_network_result_t const & standby_network_result);
+    void elect_exchange(common::xlogic_time_t const current_time, data::election::xstandby_network_result_t const & standby_network_result);
 };
 using xrec_elect_archive_contract_new_t = xtop_rec_elect_archive_contract_new;
 

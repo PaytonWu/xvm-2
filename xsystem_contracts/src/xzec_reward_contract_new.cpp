@@ -4,6 +4,7 @@
 
 #include "xvm/xsystem_contracts/xreward/xzec_reward_contract_new.h"
 
+#include "xchain_fork/xchain_upgrade_center.h"
 #include "xchain_upgrade/xchain_data_processor.h"
 #include "xcontract_common/xfollowup_transaction_datum.h"
 #include "xdata/xgenesis_data.h"
@@ -23,10 +24,10 @@ using namespace top::state_accessor::properties;
 #define XCONTRACT_PREFIX "Reward_"
 #define XREWARD_CONTRACT XSYSCONTRACT_MODULE XCONTRACT_PREFIX
 
-#define VALID_EDGER(node) (node.get_deposit() > 0)
-#define VALID_ARCHIVER(node) (node.get_deposit() > 0 && node.is_valid_archive_node())
-#define VALID_AUDITOR(node) (node.get_deposit() > 0 && node.is_valid_auditor_node())
-#define VALID_VALIDATOR(node) (node.get_deposit() > 0)
+#define VALID_EDGER(node) (node.deposit() > 0)
+#define VALID_ARCHIVER(node) (node.deposit() > 0 && node.can_be_archive())
+#define VALID_AUDITOR(node) (node.deposit() > 0 && node.can_be_auditor())
+#define VALID_VALIDATOR(node) (node.deposit() > 0)
 
 enum { total_idx = 0, valid_idx, deposit_zero_num, num_type_idx_num } xreward_num_type_e;
 enum { edger_idx = 0, archiver_idx, auditor_idx, validator_idx, role_type_idx_num } xreward_role_type_e;
@@ -753,7 +754,7 @@ top::xstake::uint128_t xtop_zec_reward_contract_new::calc_total_issuance(const c
     return additional_issuance;
 }
 
-std::vector<std::vector<uint32_t>> xtop_zec_reward_contract_new::calc_role_nums(std::map<common::xaccount_address_t, xreg_node_info> const & map_nodes) {
+std::vector<std::vector<uint32_t>> xtop_zec_reward_contract_new::calc_role_nums(std::map<common::xaccount_address_t, xreg_node_info> const & map_nodes, bool fullnode_enabled) {
     std::vector<std::vector<uint32_t>> role_nums;
     // vector init
     role_nums.resize(role_type_idx_num);
@@ -785,7 +786,7 @@ std::vector<std::vector<uint32_t>> xtop_zec_reward_contract_new::calc_role_nums(
         }
 #else
         // now statistical method
-        if (node.is_edge_node()) {
+        if (node.could_be_edge()) {
             // total edger nums
             role_nums[edger_idx][total_idx]++;
             // valid edger nums
@@ -793,23 +794,38 @@ std::vector<std::vector<uint32_t>> xtop_zec_reward_contract_new::calc_role_nums(
                 role_nums[edger_idx][valid_idx]++;
             }
             // deposit zero edger nums
-            if (node.get_deposit() == 0) {
+            if (node.deposit() == 0) {
                 role_nums[edger_idx][deposit_zero_num]++;
             }
         }
-        if (node.is_archive_node()) {
-            // total archiver nums
-            role_nums[archiver_idx][total_idx]++;
-            // valid archiver nums
-            if (VALID_ARCHIVER(node)) {
-                role_nums[archiver_idx][valid_idx]++;
+        if (fullnode_enabled) {
+            if (node.could_be_archive()) {
+                // total archiver nums
+                role_nums[archiver_idx][total_idx]++;
+                // valid archiver nums
+                if (node.deposit() > 0 && node.can_be_archive()) {
+                    role_nums[archiver_idx][valid_idx]++;
+                }
+                // deposit zero archiver nums
+                if (node.deposit() == 0) {
+                    role_nums[archiver_idx][deposit_zero_num]++;
+                }
             }
-            // deposit zero archiver nums
-            if (node.get_deposit() == 0) {
-                role_nums[archiver_idx][deposit_zero_num]++;
+        } else {
+            if (node.legacy_could_be_archive()) {
+                // total archiver nums
+                role_nums[archiver_idx][total_idx]++;
+                // valid archiver nums
+                if (node.deposit() > 0 && node.legacy_can_be_archive()) {
+                    role_nums[archiver_idx][valid_idx]++;
+                }
+                // deposit zero archiver nums
+                if (node.deposit() == 0) {
+                    role_nums[archiver_idx][deposit_zero_num]++;
+                }
             }
         }
-        if (node.is_auditor_node()) {
+        if (node.could_be_auditor()) {
             // total auditor nums
             role_nums[auditor_idx][total_idx]++;
             // valid auditor nums
@@ -817,11 +833,11 @@ std::vector<std::vector<uint32_t>> xtop_zec_reward_contract_new::calc_role_nums(
                 role_nums[auditor_idx][valid_idx]++;
             }
             // deposit zero auditor nums
-            if (node.get_deposit() == 0) {
+            if (node.deposit() == 0) {
                 role_nums[auditor_idx][deposit_zero_num]++;
             }
         }
-        if (node.is_validator_node()) {
+        if (node.could_be_validator()) {
             // total validator nums
             role_nums[validator_idx][total_idx]++;
             // valid validator nums
@@ -829,7 +845,7 @@ std::vector<std::vector<uint32_t>> xtop_zec_reward_contract_new::calc_role_nums(
                 role_nums[validator_idx][valid_idx]++;
             }
             // deposit zero validator nums
-            if (node.get_deposit() == 0) {
+            if (node.deposit() == 0) {
                 role_nums[validator_idx][deposit_zero_num]++;
             }
         }
@@ -858,8 +874,8 @@ uint64_t xtop_zec_reward_contract_new::calc_votes(std::map<common::xaccount_addr
         node.m_vote_amount = node_total_votes;
         xdbg("[xtop_zec_reward_contract_new::calc_votes] map_nodes: account: %s, deposit: %llu, node_type: %s, votes: %llu",
              node.m_account.c_str(),
-             node.get_deposit(),
-             node.m_genesis_node ? "advance,validator,edge" : common::to_string(node.m_registered_role).c_str(),
+             node.deposit(),
+             node.m_genesis_node ? "advance,validator,edge" : common::to_string(node.miner_type()).c_str(),
              node.m_vote_amount);
     }
     // valid auditor only
@@ -877,7 +893,7 @@ uint64_t xtop_zec_reward_contract_new::calc_votes(std::map<common::xaccount_addr
                 node = it->second;
             }
 
-            if (node.get_deposit() > 0 && node.is_valid_auditor_node()) {
+            if (node.deposit() > 0 && node.can_be_auditor()) {
                 total_votes += entity2.second;
             }
         }
@@ -936,10 +952,10 @@ top::xstake::uint128_t xtop_zec_reward_contract_new::calc_invalid_workload_group
                 node = it3->second;
             }
             if (is_auditor) {
-                if (node.get_deposit() == 0 || !node.is_valid_auditor_node()) {
+                if (node.deposit() == 0 || !node.can_be_auditor()) {
                     xinfo("[xtop_zec_reward_contract_new::calc_invalid_workload_group_reward] account: %s is not a valid auditor, deposit: %llu, votes: %llu",
                           it2->first.c_str(),
-                          node.get_deposit(),
+                          node.deposit(),
                           node.m_vote_amount);
                     it->second.cluster_total_workload -= it2->second;
                     it->second.m_leader_count.erase(it2++);
@@ -947,10 +963,10 @@ top::xstake::uint128_t xtop_zec_reward_contract_new::calc_invalid_workload_group
                     it2++;
                 }
             } else {
-                if (node.get_deposit() == 0 || !node.is_validator_node()) {
+                if (node.deposit() == 0 || !node.could_be_validator()) {
                     xinfo("[xtop_zec_reward_contract_new::calc_invalid_workload_group_reward] account: %s is not a valid validator, deposit: %lu",
                           it2->first.c_str(),
-                          node.get_deposit());
+                          node.deposit());
                     it->second.cluster_total_workload -= it2->second;
                     it->second.m_leader_count.erase(it2++);
                 } else {
@@ -997,6 +1013,7 @@ void xtop_zec_reward_contract_new::calc_edge_workload_rewards(xreg_node_info con
 void xtop_zec_reward_contract_new::calc_archive_workload_rewards(xreg_node_info const & node,
                                                                  std::vector<uint32_t> const & archive_num,
                                                                  const top::xstake::uint128_t archive_workload_rewards,
+                                                                 bool const fullnode_enabled,
                                                                  top::xstake::uint128_t & reward_to_self) {
     XCONTRACT_ENSURE(archive_num.size() == num_type_idx_num, "archive_num not 3");
     auto divide_num = archive_num[valid_idx];
@@ -1004,8 +1021,19 @@ void xtop_zec_reward_contract_new::calc_archive_workload_rewards(xreg_node_info 
     if (0 == divide_num) {
         return;
     }
-    if (!VALID_ARCHIVER(node)) {
+
+    if (node.deposit() == 0) {
         return;
+    }
+
+    if (!fullnode_enabled) {
+        if (!node.legacy_can_be_archive()) {
+            return;
+        }
+    } else {
+        if (!node.can_be_archive()) {
+            return;
+        }
     }
     reward_to_self = archive_workload_rewards / divide_num;
     xdbg("[xtop_zec_reward_contract_new::calc_archive_worklaod_rewards] account: %s, archive reward: [%llu, %u]",
@@ -1115,14 +1143,14 @@ void xtop_zec_reward_contract_new::calc_vote_reward(xreg_node_info const & node,
                                                     const top::xstake::uint128_t vote_rewards,
                                                     top::xstake::uint128_t & reward_to_self) {
     reward_to_self = 0;
-    if (node.is_valid_auditor_node() && node.get_deposit() > 0) {
+    if (node.can_be_auditor() && node.deposit() > 0) {
         XCONTRACT_ENSURE(auditor_total_votes > 0, "total_votes = 0 while valid auditor num > 0");
         reward_to_self = vote_rewards * node.m_vote_amount / auditor_total_votes;
         xdbg("[xtop_zec_reward_contract_new::calc_nodes_rewards_v4] account: %s, node_vote_reward: [%llu, %u], node deposit: %llu, auditor_total_votes: %llu, node_votes: %llu",
              node.m_account.c_str(),
              static_cast<uint64_t>(reward_to_self / REWARD_PRECISION),
              static_cast<uint32_t>(reward_to_self % REWARD_PRECISION),
-             node.get_deposit(),
+             node.deposit(),
              auditor_total_votes,
              node.m_vote_amount);
     }
@@ -1188,16 +1216,15 @@ common::xaccount_address_t xtop_zec_reward_contract_new::calc_table_contract_add
     return common::xaccount_address_t{table_address};
 }
 
-void xtop_zec_reward_contract_new::calc_nodes_rewards_v5(const common::xlogic_time_t current_time,
-                                                         const common::xlogic_time_t activation_time,
-                                                         const xreward_onchain_param_t & onchain_param,
+void xtop_zec_reward_contract_new::calc_nodes_rewards_v5(common::xlogic_time_t const current_time,
+                                                         common::xlogic_time_t const issue_time_length,
+                                                         xreward_onchain_param_t const & onchain_param,
                                                          xreward_property_param_t & property_param,
                                                          xissue_detail & issue_detail,
                                                          std::map<common::xaccount_address_t, top::xstake::uint128_t> & node_reward_detail,
                                                          std::map<common::xaccount_address_t, top::xstake::uint128_t> & node_dividend_detail,
                                                          top::xstake::uint128_t & community_reward) {
     // step 1: calculate issuance
-    auto issue_time_length = current_time - activation_time;
     auto total_issuance =
         calc_total_issuance(issue_time_length, onchain_param.min_ratio_annual_total_reward, onchain_param.additional_issue_year_ratio, property_param.accumulated_reward_record);
     XCONTRACT_ENSURE(total_issuance > 0, "total issuance = 0");
@@ -1238,7 +1265,14 @@ void xtop_zec_reward_contract_new::calc_nodes_rewards_v5(const common::xlogic_ti
     // step 2: calculate different votes and role nums
     std::map<common::xaccount_address_t, uint64_t> account_votes;
     auto auditor_total_votes = calc_votes(property_param.votes_detail, property_param.map_nodes, account_votes);
-    std::vector<std::vector<uint32_t>> role_nums = calc_role_nums(property_param.map_nodes);
+
+    auto const & fork_config = chain_fork::xchain_fork_config_center_t::get_chain_fork_config();
+#if defined(XENABLE_TESTS)
+    auto const fullnode_enabled = false;
+#else
+    auto const fullnode_enabled = chain_fork::xchain_fork_config_center_t::is_forked(fork_config.enable_fullnode_related_func_fork_point, current_time);
+#endif
+    std::vector<std::vector<uint32_t>> role_nums = calc_role_nums(property_param.map_nodes, fullnode_enabled);
 
     xinfo(
         "[xtop_zec_reward_contract_new::calc_nodes_rewards] issue_time_length: %llu, "
@@ -1311,7 +1345,7 @@ void xtop_zec_reward_contract_new::calc_nodes_rewards_v5(const common::xlogic_ti
         top::xstake::uint128_t dividend_reward = 0;
 
         // 3.2 workload reward
-        if (node.is_edge_node()) {
+        if (node.could_be_edge()) {
             top::xstake::uint128_t reward_to_self = 0;
             calc_edge_workload_rewards(node, role_nums[edger_idx], edge_workload_rewards, reward_to_self);
             if (reward_to_self != 0) {
@@ -1319,15 +1353,26 @@ void xtop_zec_reward_contract_new::calc_nodes_rewards_v5(const common::xlogic_ti
                 self_reward += reward_to_self;
             }
         }
-        if (node.is_archive_node()) {
-            top::xstake::uint128_t reward_to_self = 0;
-            calc_archive_workload_rewards(node, role_nums[archiver_idx], archive_workload_rewards, reward_to_self);
-            if (reward_to_self != 0) {
-                issue_detail.m_node_rewards[account.to_string()].m_archive_reward = reward_to_self;
-                self_reward += reward_to_self;
+        if (fullnode_enabled) {
+            if (node.could_be_archive()) {
+                top::xstake::uint128_t reward_to_self = 0;
+                calc_archive_workload_rewards(node, role_nums[archiver_idx], archive_workload_rewards, fullnode_enabled, reward_to_self);
+                if (reward_to_self != 0) {
+                    issue_detail.m_node_rewards[account.to_string()].m_archive_reward = reward_to_self;
+                    self_reward += reward_to_self;
+                }
+            }
+        } else {
+            if (node.legacy_could_be_archive()) {
+                top::xstake::uint128_t reward_to_self = 0;
+                calc_archive_workload_rewards(node, role_nums[archiver_idx], archive_workload_rewards, fullnode_enabled, reward_to_self);
+                if (reward_to_self != 0) {
+                    issue_detail.m_node_rewards[account.to_string()].m_archive_reward = reward_to_self;
+                    self_reward += reward_to_self;
+                }
             }
         }
-        if (node.is_auditor_node()) {
+        if (node.could_be_auditor()) {
             top::xstake::uint128_t reward_to_self = 0;
             calc_auditor_workload_rewards(node, role_nums[auditor_idx], property_param.auditor_workloads_detail, auditor_group_workload_rewards, reward_to_self);
             if (reward_to_self != 0) {
@@ -1335,7 +1380,7 @@ void xtop_zec_reward_contract_new::calc_nodes_rewards_v5(const common::xlogic_ti
                 self_reward += reward_to_self;
             }
         }
-        if (node.is_validator_node()) {
+        if (node.could_be_validator()) {
             top::xstake::uint128_t reward_to_self = 0;
             calc_validator_workload_rewards(node, role_nums[validator_idx], property_param.validator_workloads_detail, validator_group_workload_rewards, reward_to_self);
             if (reward_to_self != 0) {
@@ -1344,7 +1389,7 @@ void xtop_zec_reward_contract_new::calc_nodes_rewards_v5(const common::xlogic_ti
             }
         }
         // 3.3 vote reward
-        if (node.is_valid_auditor_node() && node.get_deposit() > 0 && auditor_total_votes > 0) {
+        if (node.can_be_auditor() && node.deposit() > 0 && auditor_total_votes > 0) {
             top::xstake::uint128_t reward_to_self = 0;
             calc_vote_reward(node, auditor_total_votes, vote_rewards, reward_to_self);
             if (reward_to_self != 0) {

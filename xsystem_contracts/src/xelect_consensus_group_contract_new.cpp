@@ -119,10 +119,10 @@ static uint64_t calc_comprehensive_stake(int i) {
     return std::max(stake, minimum_comprehensive_stake);  // comprehensive_stake has minimum value 1.
 }
 
-static void normalize_stake(common::xrole_type_t const role, std::vector<xelection_awared_data_t> & input) {
+static void normalize_stake(common::xminer_type_t const miner_type, std::vector<xelection_awared_data_t> & input) {
     auto & result = input;
-    switch (role) {
-    case common::xrole_type_t::advance: {
+    switch (miner_type) {
+    case common::xminer_type_t::advance: {
         std::sort(std::begin(result), std::end(result), [](xelection_awared_data_t const & lhs, xelection_awared_data_t const & rhs) { return lhs > rhs; });
         for (auto i = 0u; i < result.size(); ++i) {
             if (result[i].stake() > 0) {  // special condition check for genesis nodes.
@@ -137,7 +137,7 @@ static void normalize_stake(common::xrole_type_t const role, std::vector<xelecti
         break;
     }
 
-    case common::xrole_type_t::validator: {
+    case common::xminer_type_t::validator: {
         for (auto & standby_node : result) {
             standby_node.comprehensive_stake(std::max(standby_node.stake(), minimum_comprehensive_stake));
         }
@@ -173,28 +173,28 @@ bool xtop_elect_consensus_group_contract_new::elect_group(common::xzone_id_t con
     auto const max_group_size = group_size_range.end;
 
     common::xnode_type_t node_type{};
-    common::xrole_type_t role_type{};
+    common::xminer_type_t miner_type{};
 
     switch (common::node_type_from(zid)) {
     case common::xnode_type_t::committee: {
         node_type = common::xnode_type_t::committee;
-        role_type = common::xrole_type_t::advance;
+        miner_type = common::xminer_type_t::advance;
         break;
     }
 
     case common::xnode_type_t::zec: {
         node_type = common::xnode_type_t::zec;
-        role_type = common::xrole_type_t::advance;
+        miner_type = common::xminer_type_t::advance;
         break;
     }
 
     case common::xnode_type_t::consensus: {
         if (gid < common::xauditor_group_id_end) {
             node_type = common::xnode_type_t::consensus_auditor;
-            role_type = common::xrole_type_t::advance;
+            miner_type = common::xminer_type_t::advance;
         } else {
             node_type = common::xnode_type_t::consensus_validator;
-            role_type = common::xrole_type_t::validator;
+            miner_type = common::xminer_type_t::validator;
         }
         break;
     }
@@ -206,7 +206,7 @@ bool xtop_elect_consensus_group_contract_new::elect_group(common::xzone_id_t con
     }
     }
 
-    assert(node_type != common::xnode_type_t::invalid && role_type != common::xrole_type_t::invalid);
+    assert(node_type != common::xnode_type_t::invalid && miner_type != common::xminer_type_t::invalid);
 
     try {
         xwarn("%s starts electing", log_prefix.c_str());
@@ -239,7 +239,7 @@ bool xtop_elect_consensus_group_contract_new::elect_group(common::xzone_id_t con
         if (current_group_nodes.size() > max_group_size) {
             return do_shrink_election(zid, cid, gid, node_type, random_seed, current_group_nodes.size() - max_group_size, standby_result, current_group_nodes);
         } else {
-            return do_normal_election(zid, cid, gid, node_type, role_type, random_seed, group_size_range, standby_result, current_group_nodes);
+            return do_normal_election(zid, cid, gid, node_type, miner_type, random_seed, group_size_range, standby_result, current_group_nodes);
         }
     } catch (top::error::xtop_error_t const & eh) {
         xerror("%s xtop_error_t exception caught. category: %s msg: %s", log_prefix.c_str(), eh.code().category().name(), eh.what());
@@ -347,7 +347,7 @@ bool xtop_elect_consensus_group_contract_new::do_normal_election(common::xzone_i
                                                                  common::xcluster_id_t const & cid,
                                                                  common::xgroup_id_t const & gid,
                                                                  common::xnode_type_t const node_type,
-                                                                 common::xrole_type_t const role_type,
+                                                                 common::xminer_type_t const miner_type,
                                                                  std::uint64_t const random_seed,
                                                                  xrange_t<config::xgroup_size_t> const & group_size_range,
                                                                  data::election::xstandby_result_t const & standby_result,
@@ -365,7 +365,7 @@ bool xtop_elect_consensus_group_contract_new::do_normal_election(common::xzone_i
                                               top::get<xstandby_node_info_t>(standby_info).consensus_public_key);
     }
 
-    normalize_stake(role_type, effective_standby_result);
+    normalize_stake(miner_type, effective_standby_result);
 
     // preparing the fts selection. rule:
     // when electing in, the higher the stake is, the higher the possibility is.
