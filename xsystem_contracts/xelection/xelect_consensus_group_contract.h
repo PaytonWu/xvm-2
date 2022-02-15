@@ -6,7 +6,7 @@
 
 #include "xcommon/xfts.h"
 #include "xdata/xelection/xelection_group_result.h"
-#include "xstake/xstake_algorithm.h"
+#include "xdata/xsystem_contract/xstake_algorithm.h"
 #include "xvm/xsystem_contracts/xelection/xelect_group_contract.h"
 
 #include <ratio>

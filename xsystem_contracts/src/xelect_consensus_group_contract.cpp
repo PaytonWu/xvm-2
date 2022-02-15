@@ -7,11 +7,11 @@
 #include "xcodec/xmsgpack_codec.hpp"
 #include "xcommon/xfts.h"
 #include "xconfig/xconfig_register.h"
+#include "xconfig/xpredefined_configurations.h"
 #include "xdata/xcodec/xmsgpack/xelection_network_result_codec.hpp"
 #include "xdata/xcodec/xmsgpack/xstandby_result_store_codec.hpp"
 #include "xdata/xgenesis_data.h"
-#include "xconfig/xpredefined_configurations.h"
-#include "xstake/xstake_algorithm.h"
+#include "xdata/xsystem_contract/xstake_algorithm.h"
 #include "xvm/xerror/xvm_error.h"
 
 #include <cassert>
