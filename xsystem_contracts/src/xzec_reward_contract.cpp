@@ -11,7 +11,7 @@
 #include "xchain_upgrade/xchain_data_processor.h"
 #include "xdata/xgenesis_data.h"
 #include "xdata/xnative_contract_address.h"
-#include "xdata/xsystem_contract/xstake_algorithm.h"
+#include "xdata/xsystem_contract/xdata_structures.h"
 #include "xstore/xstore_error.h"
 
 #include <iomanip>

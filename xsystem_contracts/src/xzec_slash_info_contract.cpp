@@ -9,7 +9,7 @@
 #include "xdata/xfull_tableblock.h"
 #include "xdata/xgenesis_data.h"
 #include "xdata/xnative_contract_address.h"
-#include "xdata/xsystem_contract/xstake_algorithm.h"
+#include "xdata/xsystem_contract/xdata_structures.h"
 #include "xvm/manager/xcontract_manager.h"
 
 

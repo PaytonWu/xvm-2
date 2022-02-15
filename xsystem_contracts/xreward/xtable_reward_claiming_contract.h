@@ -5,7 +5,7 @@
 #pragma once
 
 #include "xcommon/xaddress.h"
-#include "xdata/xsystem_contract/xstake_algorithm.h"
+#include "xdata/xsystem_contract/xdata_structures.h"
 #include "xvm/xcontract/xcontract_base.h"
 #include "xvm/xcontract/xcontract_exec.h"
 

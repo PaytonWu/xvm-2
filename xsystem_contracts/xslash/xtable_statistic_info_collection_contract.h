@@ -8,7 +8,7 @@
 #include "xdata/xfull_tableblock.h"
 #include "xdata/xfulltableblock_account_data.h"
 #include "xdata/xslash.h"
-#include "xdata/xsystem_contract/xstake_algorithm.h"
+#include "xdata/xsystem_contract/xdata_structures.h"
 #include "xvledger/xvcnode.h"
 #include "xvm/xcontract/xcontract_base.h"
 #include "xvm/xcontract/xcontract_exec.h"

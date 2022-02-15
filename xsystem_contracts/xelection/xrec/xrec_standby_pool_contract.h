@@ -8,7 +8,7 @@
 #include "xcommon/xlogic_time.h"
 #include "xcommon/xrole_type.h"
 #include "xdata/xelection/xstandby_result_store.h"
-#include "xdata/xsystem_contract/xstake_algorithm.h"
+#include "xdata/xsystem_contract/xdata_structures.h"
 #include "xvm/xcontract/xcontract_base.h"
 #include "xvm/xcontract/xcontract_exec.h"
 
