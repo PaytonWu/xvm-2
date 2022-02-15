@@ -100,7 +100,7 @@ void xtop_table_reward_claiming_contract::update_vote_reward_record(common::xacc
     }
 }
 
-void xtop_table_reward_claiming_contract::recv_voter_dividend_reward(uint64_t issuance_clock_height, std::map<std::string, top::xuint128_t> const & rewards) {
+void xtop_table_reward_claiming_contract::recv_voter_dividend_reward(uint64_t issuance_clock_height, std::map<std::string, ::uint128_t> const & rewards) {
     XMETRICS_TIME_RECORD("sysContract_tableRewardClaiming_recv_voter_dividend_reward");
 
 
@@ -159,11 +159,11 @@ void xtop_table_reward_claiming_contract::recv_voter_dividend_reward(uint64_t is
 
 void xtop_table_reward_claiming_contract::add_voter_reward(uint64_t issuance_clock_height,
                                                            std::map<std::string, uint64_t> & votes_table,
-                                                           std::map<std::string, top::xuint128_t> const & rewards,
+                                                           std::map<std::string, ::uint128_t> const & rewards,
                                                            std::map<std::string, std::string> const & adv_votes,
                                                            data::system_contract::xreward_record & record) {
-    top::xuint128_t node_vote_reward = 0;
-    top::xuint128_t voter_node_reward = 0;
+    ::uint128_t node_vote_reward = 0;
+    ::uint128_t voter_node_reward = 0;
     uint64_t node_total_votes = 0;
     uint64_t voter_node_votes = 0;
     record.issue_time = issuance_clock_height;
@@ -277,7 +277,7 @@ void xtop_table_reward_claiming_contract::update_working_reward_record(common::x
     }
 }
 
-void xtop_table_reward_claiming_contract::update(common::xaccount_address_t const & node_account, uint64_t issuance_clock_height, top::xuint128_t reward) {
+void xtop_table_reward_claiming_contract::update(common::xaccount_address_t const & node_account, uint64_t issuance_clock_height, ::uint128_t reward) {
     auto const & self_address = SELF_ADDRESS();
     xdbg("[xtop_table_reward_claiming_contract::update] self_address: %s, account: %s, reward: [%llu, %u], pid: %d",
          self_address.c_str(), node_account.c_str(),
@@ -314,7 +314,7 @@ void xtop_table_reward_claiming_contract::update(common::xaccount_address_t cons
     }
 }
 
-void xtop_table_reward_claiming_contract::recv_node_reward(uint64_t issuance_clock_height, std::map<std::string, top::xuint128_t> const & rewards) {
+void xtop_table_reward_claiming_contract::recv_node_reward(uint64_t issuance_clock_height, std::map<std::string, ::uint128_t> const & rewards) {
     XMETRICS_TIME_RECORD("sysContract_tableRewardClaiming_recv_node_reward");
 
     auto const & source_address = SOURCE_ADDRESS();

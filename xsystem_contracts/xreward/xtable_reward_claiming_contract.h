@@ -55,14 +55,14 @@ private:
      * @param issuance_clock_height
      * @param rewards
      */
-    void recv_node_reward(uint64_t issuance_clock_height, std::map<std::string, top::xuint128_t> const & rewards);
+    void recv_node_reward(uint64_t issuance_clock_height, std::map<std::string, ::uint128_t> const & rewards);
     /**
      * @brief receive voter dividend reward
      *
      * @param issuance_clock_height
      * @param rewards
      */
-    void recv_voter_dividend_reward(uint64_t issuance_clock_height, std::map<std::string, top::xuint128_t> const & rewards);
+    void recv_voter_dividend_reward(uint64_t issuance_clock_height, std::map<std::string, ::uint128_t> const & rewards);
 
     /**
      * @brief update node reward record
@@ -105,7 +105,7 @@ private:
      * @param issuance_clock_height
      * @param reward
      */
-    void update(common::xaccount_address_t const & node_account, uint64_t issuance_clock_height, top::xuint128_t reward);
+    void update(common::xaccount_address_t const & node_account, uint64_t issuance_clock_height, ::uint128_t reward);
 
     /**
      * @brief add node reward
@@ -118,7 +118,7 @@ private:
      */
     void add_voter_reward(uint64_t issuance_clock_height,
                           std::map<std::string, uint64_t> & votes_table,
-                          std::map<std::string, top::xuint128_t> const & rewards,
+                          std::map<std::string, ::uint128_t> const & rewards,
                           std::map<std::string, std::string> const & adv_votes,
                           data::system_contract::xreward_record & record);
     
