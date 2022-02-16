@@ -683,7 +683,7 @@ static void get_rec_standby_pool_property_data(observer_ptr<store::xstore_face_t
                         j["consensus_public_key"] = standby_node_info.consensus_public_key.to_string();
                         j["node_id"] = node_id.value();
                         j["stake"] = static_cast<xJson::UInt64>(standby_node_info.stake(node_type));
-                        j["is_genesis_node"] = std::string{standby_node_info.is_genesis_node ? "true" : "false"};
+                        j["is_genesis_node"] = std::string{standby_node_info.genesis ? "true" : "false"};
                         j["program_version"] = standby_node_info.program_version;
                         json[node_type_str].append(j);
                         break;

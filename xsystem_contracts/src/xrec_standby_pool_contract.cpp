@@ -55,10 +55,10 @@ void xtop_rec_standby_pool_contract::setup() {
         seed_node_info.stake_container.insert({common::xnode_type_t::consensus_validator, 0});
         seed_node_info.stake_container.insert({common::xnode_type_t::edge, 0});
 #if defined(XENABLE_MOCK_ZEC_STAKE)
-        seed_node_info.user_request_role = common::xminer_type_t::edge | common::xminer_type_t::archive | common::xminer_type_t::validator | common::xminer_type_t::advance;
+        seed_node_info.miner_type = common::xminer_type_t::edge | common::xminer_type_t::archive | common::xminer_type_t::validator | common::xminer_type_t::advance;
 #endif  // #if defined(XENABLE_MOCK_ZEC_STAKE)
         seed_node_info.program_version = "1.1.0"; // todo init version
-        seed_node_info.is_genesis_node = true;
+        seed_node_info.genesis = true;
 
         standby_result_store.result_of(network_id()).insert({node_id, seed_node_info});
     }
@@ -104,7 +104,7 @@ void xtop_rec_standby_pool_contract::nodeJoinNetwork2(common::xaccount_address_t
     // get reg_node_info && standby_info
     std::map<std::string, std::string> map_nodes;
 
-    MAP_COPY_GET(top::xstake::XPORPERTY_CONTRACT_REG_KEY, map_nodes, sys_contract_rec_registration_addr);
+    MAP_COPY_GET(top::data::system_contract::XPORPERTY_CONTRACT_REG_KEY, map_nodes, sys_contract_rec_registration_addr);
     XCONTRACT_ENSURE(!map_nodes.empty(), "[xrec_standby_pool_contract_t][nodeJoinNetwork] fail: did not get the MAP");
 
     auto const iter = map_nodes.find(node_id.value());
@@ -112,7 +112,7 @@ void xtop_rec_standby_pool_contract::nodeJoinNetwork2(common::xaccount_address_t
 
     auto const & value_str = iter->second;
     base::xstream_t stream(base::xcontext_t::instance(), reinterpret_cast<uint8_t *>(const_cast<char *>(value_str.data())), static_cast<uint32_t>(value_str.size()));
-    xstake::xreg_node_info node;
+    data::system_contract::xreg_node_info node;
     node.serialize_from(stream);
 
     XCONTRACT_ENSURE(node.m_account == node_id, "[xrec_standby_pool_contract_t][nodeJoinNetwork] storage data messed up?");
@@ -171,12 +171,12 @@ void xtop_rec_standby_pool_contract::nodeJoinNetwork2(common::xaccount_address_t
 
     xstandby_node_info_t new_node_info;
 
-    new_node_info.user_request_role = miner_type;  // new_node.m_role_type;
+    new_node_info.miner_type = miner_type;
 
     new_node_info.consensus_public_key = xpublic_key_t{consensus_public_key};
     new_node_info.program_version = program_version;
 
-    new_node_info.is_genesis_node = false;
+    new_node_info.genesis = false;
 
     bool new_node{false};
     for (const auto network_id : network_ids) {
@@ -291,7 +291,8 @@ bool xtop_rec_standby_pool_contract::nodeJoinNetworkImpl(std::string const & pro
     new_node_info.consensus_public_key = xpublic_key_t{consensus_public_key};
     new_node_info.program_version = program_version;
 
-    new_node_info.is_genesis_node = node.is_genesis_node();
+    new_node_info.genesis = node.genesis();
+    new_node_info.miner_type = miner_type;
 
     bool new_node{false};
     for (const auto network_id : network_ids) {
@@ -380,7 +381,9 @@ bool xtop_rec_standby_pool_contract::update_standby_node(data::system_contract::
     }
     new_node_info.consensus_public_key = reg_node.consensus_public_key;
     new_node_info.program_version = standby_node_info.program_version;
-    new_node_info.is_genesis_node = reg_node.is_genesis_node();
+    new_node_info.genesis = reg_node.genesis();
+    new_node_info.miner_type = reg_node.miner_type();
+
     if (new_node_info == standby_node_info) {
         return false;
     } else {
